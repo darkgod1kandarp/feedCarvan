@@ -35,9 +35,9 @@ app.use(
   })
 );
 
-const Port = process.env.PORT || 6000;
+const Port = process.env.PORT || 3003;
 const server = app.listen(Port, () =>
-  console.log("Server started on port 6000")
+  console.log("Server started on port 3003")
 );
 
 var cloudinary = require("cloudinary").v2;
@@ -95,6 +95,8 @@ app.post("/signup", async (req, res) => {
   }
 });
 let id;
+
+
 
 app.post("/userprofile", async (req, res) => {
   const { userid } = req.body;
@@ -265,6 +267,74 @@ app.post("/home", async (req, res) => {
 
 
 });
+const comparison = (arr1,arr2)=>{
+    
+    let arr3 = arr1.concat(arr2)
+    const length1 = arr3.length;
+    let arr4 = new Set(arr3);
+    const arr5 = Array.from(arr4);
+    const length2 = arr5.length;
+    return length1 - length2
+
+
+}
+app.post("/job",async(req,res)=>{
+    const {userid, type_account}  = req.body;
+    let sql ;
+    sql  = `select * from skills_already_have where userid1 = '${userid}'; `
+    const[row3,] = await db.query(sql);
+
+    const userLanguage = []
+    await row3.map((x)=>{
+       
+        userLanguage.push(x.skills);
+    })
+    if(type_account=="student"){
+        sql =`select userinfo.userid1,jobpost,lowest_price,highest_price,username,email,idtoken from jobs_taken_account,userinfo where jobs_taken_account.userid1 = userinfo.userid1;`
+
+        const [row1,] =  await db.query(sql);
+        sql = `select * from jobs_language,jobs_taken_account  where jobs_language.idtoken = jobs_taken_account.idtoken`
+        const[row2,] =  await db.query(sql);
+
+        const Languagedata = {}
+        await row2.map((x)=>{
+            if(Languagedata.hasOwnProperty(x.idtoken)){
+                Languagedata[x.idtoken].push(x.langauge1);
+                 }
+                 else{
+                     Languagedata[x.idtoken] = [x.langauge1];
+                 }
+        })
+        const datasetUser = {}
+        await row1.map((x)=>{
+
+            datasetUser[x.idtoken] =  x
+        })
+        const ranking=[]
+        
+        for(let x in Languagedata){
+
+            const difference = comparison(userLanguage,Languagedata[x])
+            const rank = {}
+            rank[x] = difference;
+            ranking.push({name:{id:x,difference}});
+           
+        }
+
+        ranking.sort((a,b)=> (a.name.difference < b.name.difference ? 1 : -1))
+         
+        
+        
+        return res.send({ranking,datasetUser,Languagedata})
+
+    }
+    else{
+
+    }
+
+
+})
+
 
 app.post("/checking", verifyToken, (req, res) => {
   jwt.verify(req.token, "secretkey", async (err, authData) => {
