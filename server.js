@@ -101,9 +101,27 @@ app.post("/userprofile", async (req, res) => {
   let sql = `select username,email,type_account,university_name,location from userinfo,user_account_details where userinfo.userid1 = '${userid}' and user_account_details.userid1='${userid}'  ;`;
   console.log(sql);
   const [row1, column1] = await db.query(sql);
-  console.log(row1);
+
   return res.send(row1);
 });
+
+app.post("/connectiondetails", async (req, res) => {
+    const { userid1,userid2 } = req.body;
+    let sql = `select * from connection_people where (connector = '${userid1}' and connecting = '${userid2}') or (connector = '${userid2}' and connecting = '${userid1}');`
+    console.log(sql);
+    const [row1, column1] = await db.query(sql);
+    console.log(row1);
+    if(row1[0].sided ==0){
+        if(userid1===row1[0].connector){
+            return res.send({data:"ttconn"}) // tried to connect
+        }
+        else{
+           return res.send({data:"nttconn"})
+        }  
+    }
+    return res.send({data:"bconn"});
+  });
+ 
 // toshi@explified.com
 //kushal@explified.com
 app.post("/profile", async (req, res) => {
@@ -211,7 +229,7 @@ app.post("/signin", async (req, res) => {
 });
 
 app.post("/home", async (req, res) => {
-  const { userid } = req.body;
+  const { userid,typeofaccount } = req.body;
   let sql = `select * from connection_people where (connector = '${userid}' or connecting = '${userid}') and sided = 1;`;
 
   const [counting, column1] = await db.query(sql);
@@ -226,9 +244,12 @@ app.post("/home", async (req, res) => {
         flipFlop.push(x.connecting);
       }
     }
+    flipFlop.push()
     console.log(flipFlop);
     sql = `select * from post,userinfo where post.userid1=userinfo.userid1 and post.userid1 in (?) order by timing`
     const[row2,column2] =  await db.query(sql,[flipFlop]);
+
+
     res.send({"data":row2});
     
   }
