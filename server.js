@@ -101,8 +101,10 @@ app.post("/userprofile", async (req, res) => {
   let sql = `select username,email,type_account,university_name,location from userinfo,user_account_details where userinfo.userid1 = '${userid}' and user_account_details.userid1='${userid}'  ;`;
   console.log(sql);
   const [row1, column1] = await db.query(sql);
+  sql = `select count(*) as c1 from connection_people where (connector = '${userid}' or connecting = '${userid}') and sided = 1;`;
+  const [row2, column2] = await db.query(sql);
 
-  return res.send(row1);
+  return res.send({data:row1,totalConnection:row2});
 });
 
 app.post("/connectiondetails", async (req, res) => {
@@ -229,11 +231,12 @@ app.post("/signin", async (req, res) => {
 });
 
 app.post("/home", async (req, res) => {
-  const { userid,typeofaccount } = req.body;
+  const { userid} = req.body;
   let sql = `select * from connection_people where (connector = '${userid}' or connecting = '${userid}') and sided = 1;`;
 
   const [counting, column1] = await db.query(sql);
   const flipFlop = [];
+  console.log(counting);
   if (counting.length !== 0) {
     
     for (let x of counting) {
@@ -246,15 +249,19 @@ app.post("/home", async (req, res) => {
     }
     flipFlop.push()
     console.log(flipFlop);
-    sql = `select * from post,userinfo where post.userid1=userinfo.userid1 and post.userid1 in (?) order by timing`
-    const[row2,column2] =  await db.query(sql,[flipFlop]);
-
-
-    res.send({"data":row2});
-    
+    sql = `select userinfo.userid1,post.title,post.text_des,post.url,post.timing,userinfo.username,userinfo.email from post,userinfo where post.userid1=userinfo.userid1 and post.userid1 in (?) order by timing`
+    let[row2,column2] =  await db.query(sql,[flipFlop]);
+    sql  = `select userinfo.userid1,post.title,post.text_des,post.url,post.timing,userinfo.username,userinfo.email from post,userinfo where post.userid1=userinfo.userid1 and post.userid1 not in (?) order by timing`
+    let[row3,column3] =  await db.query(sql,[flipFlop]);
+    row2 = row2.concat(row3);
+    return res.send({"data":row2});
   }
-
-  res.send({data:"ddnjf"})
+  
+  else{
+  sql  = `select userinfo.userid1,post.title,post.text_des,post.url,post.timing,userinfo.username ,userinfo.email from post,userinfo where post.userid1=userinfo.userid1 order by timing`
+  const[row3,column3] =  await db.query(sql);
+  return res.send({"data":row3});
+  }
 
 
 });
